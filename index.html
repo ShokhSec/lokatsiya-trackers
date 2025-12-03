@@ -68,17 +68,9 @@
       }
 
       window.onload = getLocation;
-      <button onclick="getLocation()">Joylashuvni olish</button>
-
-<script>
-function getLocation() {
-  navigator.geolocation.getCurrentPosition(
-    (pos) => alert(pos.coords.latitude + ", " + pos.coords.longitude),
-    (err) => alert("Xato: " + err.message)
-  );
-}
     </script>
   </body>
 </html>
+
 
 
